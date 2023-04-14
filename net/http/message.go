@@ -10,16 +10,19 @@ type Message struct {
 
 func NewMessage(code int, msg string, datas ...any) *Message {
 	var data any
-	if len(datas) == 1 {
+	switch len(datas) {
+	case 0:
+		data = nil
+	case 1:
 		data = datas[0]
-	} else if len(datas) > 1 {
+	default:
 		data = datas
 	}
 	return &Message{Code: code, Msg: msg, Data: data}
 }
 
 func NewSuccessMessage(datas ...any) *Message {
-	return NewMessage(status.Success, "success", datas...)
+	return NewMessage(status.SuccessCode, "success", datas...)
 }
 
 func NewErrorMessage(err error) *Message {
@@ -27,6 +30,6 @@ func NewErrorMessage(err error) *Message {
 	case status.ErrorCode:
 		return &Message{Code: e.Code(), Msg: e.Error()}
 	default:
-		return &Message{Code: status.Fail, Msg: e.Error()}
+		return &Message{Code: status.FailCode, Msg: e.Error()}
 	}
 }

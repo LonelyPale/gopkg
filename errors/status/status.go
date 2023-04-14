@@ -5,9 +5,14 @@ import (
 	"strconv"
 )
 
+var (
+	Success = Status{SuccessCode, "success", nil}
+	Fail    = Status{FailCode, "fail", nil}
+)
+
 const (
-	Success = 0
-	Fail    = 1
+	SuccessCode = 0
+	FailCode    = 1
 )
 
 // ErrorCode Codes ecode error interface which has a code & message.
@@ -34,7 +39,7 @@ func New(err error, details ...any) ErrorCode {
 	case ErrorCode:
 		return v
 	default:
-		return &Status{Fail, v.Error(), details}
+		return &Status{FailCode, v.Error(), details}
 	}
 }
 
