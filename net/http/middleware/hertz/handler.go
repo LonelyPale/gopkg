@@ -7,27 +7,12 @@ import (
 	"reflect"
 
 	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/cloudwego/hertz/pkg/common/json"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lonelypale/gopkg/errors/status"
 	"github.com/lonelypale/gopkg/net/http"
 	"github.com/lonelypale/gopkg/ref"
-)
-
-// Content-Type MIME of the most common data formats.
-const (
-	MIMEJSON              = "application/json"
-	MIMEHTML              = "text/html"
-	MIMEXML               = "application/xml"
-	MIMEXML2              = "text/xml"
-	MIMEPlain             = "text/plain"
-	MIMEPOSTForm          = "application/x-www-form-urlencoded"
-	MIMEMultipartPOSTForm = "multipart/form-data"
-	MIMEPROTOBUF          = "application/x-protobuf"
-	MIMEMSGPACK           = "application/x-msgpack"
-	MIMEMSGPACK2          = "application/msgpack"
-	MIMEYAML              = "application/x-yaml"
 )
 
 // Bind 转换成 app.HandlerFunc 形式的 Web 处理接口
@@ -36,7 +21,7 @@ const (
 // struct-tag: json、form、uri、query、header、any
 // 出参(0-n): any 无要求
 // 注意: hertz 绑定 json 请求的 body 时, 内容必须是 content-type -> application/json
-func Bind(fn interface{}) app.HandlerFunc {
+func Bind(fn any) app.HandlerFunc {
 	if fnType := reflect.TypeOf(fn); ref.IsFuncType(fnType) {
 		bindType := make([]reflect.Type, fnType.NumIn())
 		for n := 0; n < fnType.NumIn(); n++ {
@@ -118,19 +103,31 @@ var WebInvoke = defaultWebInvoke
 
 // defaultWebInvoke 默认的 web 执行函数
 func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c context.Context, ctx *app.RequestContext) ([]any, error)) {
+	var result *http.Message
 	var err error
 	defer func() {
-		if r := recover(); r != nil || err != nil {
+		if r := recover(); r != nil {
 			switch e := r.(type) {
-			case nil:
 			case error:
 				err = e
 			default:
 				err = fmt.Errorf("%v", e)
 			}
+		}
 
-			ctx.JSON(consts.StatusOK, http.NewErrorMessage(err))
-			log.Error(err)
+		if err != nil {
+			result = http.NewErrorMessage(err)
+		}
+
+		if result != nil {
+			ctx.JSON(consts.StatusOK, result)
+			if result.Code != status.SuccessCode {
+				request := "body is stream"
+				if !ctx.Request.IsBodyStream() {
+					request = string(ctx.Request.Body())
+				}
+				log.Errorf("code: %d msg: %s request: %s", result.Code, result.Msg, request)
+			}
 		}
 	}()
 
@@ -139,10 +136,13 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 		return
 	}
 
-	var result *http.Message
 	switch len(out) {
 	case 0:
-		result = http.NewSuccessMessage()
+		ctx.Response.Header.SetNoDefaultContentType(true)
+		contentType := ctx.Response.Header.Get(consts.HeaderContentType)
+		if contentType == "" {
+			result = http.NewSuccessMessage()
+		}
 	case 1:
 		switch v := out[0].(type) {
 		case http.Message:
@@ -151,7 +151,6 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 			result = v
 		case error:
 			result = http.NewErrorMessage(v)
-			log.Error(v)
 		default:
 			result = http.NewSuccessMessage(v)
 		}
@@ -161,16 +160,8 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 		last := out[lastIndex]
 		if l, ok := last.(error); ok {
 			result = http.NewErrorMessage(l)
-			log.Error(l)
 		} else {
 			result = http.NewSuccessMessage(out[:lastIndex]...)
 		}
 	}
-
-	bs, err := json.Marshal(result)
-	if err != nil {
-		return
-	}
-
-	ctx.Data(consts.StatusOK, MIMEJSON, bs)
 }

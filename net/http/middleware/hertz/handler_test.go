@@ -3,6 +3,7 @@ package hertz
 import (
 	"context"
 	"errors"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"testing"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -23,7 +24,7 @@ var tuser = testUser{
 func TestBind(t *testing.T) {
 	h := server.Default()
 
-	//curl localhost:8888/test1
+	//curl -v localhost:8888/test1
 	h.GET("/test1", Bind(func() {
 	}))
 
@@ -66,6 +67,7 @@ func TestBind(t *testing.T) {
 	//curl localhost:8888/test8
 	h.GET("/test8", Bind(func(ctx *app.RequestContext) error {
 		assert.NotNil(t, ctx, "*app.RequestContext cannot be nil")
+		ctx.Header(consts.HeaderContentType, "text")
 		return nil
 	}))
 
