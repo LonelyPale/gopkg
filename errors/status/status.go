@@ -13,28 +13,25 @@ type Status interface {
 	Error() string
 	Unwrap() error
 
-	Code() int
-	Type() string
+	Code() string
 	Message() string
 	Details() []any
 
-	SetCode(code int) Status
-	SetType(typ string) Status
-	SetError(err error) Status
+	SetCode(code string) Status
 	SetMessage(message string) Status
 	SetDetails(details ...any) Status
+	SetError(err error) Status
 }
 
 type status struct {
-	code    int
-	typ     string
-	err     error
-	message string
-	details []any
-	stack   *stack
+	code    string // error code
+	message string // error message
+	details []any  // error details
+	err     error  // error interface
+	stack   *stack // error call stack
 }
 
-func New(code int, typ string, message any, details ...any) Status {
+func New(code string, message any, details ...any) Status {
 	var msg string
 	var err error
 	switch val := message.(type) {
@@ -47,10 +44,9 @@ func New(code int, typ string, message any, details ...any) Status {
 	}
 	return &status{
 		code:    code,
-		typ:     typ,
-		err:     err,
 		message: msg,
 		details: details,
+		err:     err,
 		stack:   callers(),
 	}
 }
@@ -73,18 +69,8 @@ func Errorf(format string, args ...interface{}) Status {
 	}
 }
 
-func (s *status) SetCode(code int) Status {
+func (s *status) SetCode(code string) Status {
 	s.code = code
-	return s
-}
-
-func (s *status) SetType(typ string) Status {
-	s.typ = typ
-	return s
-}
-
-func (s *status) SetError(err error) Status {
-	s.err = err
 	return s
 }
 
@@ -95,6 +81,11 @@ func (s *status) SetMessage(message string) Status {
 
 func (s *status) SetDetails(details ...any) Status {
 	s.details = details
+	return s
+}
+
+func (s *status) SetError(err error) Status {
+	s.err = err
 	return s
 }
 
@@ -113,13 +104,8 @@ func (s *status) Error() string {
 }
 
 // Code return error code
-func (s *status) Code() int {
+func (s *status) Code() string {
 	return s.code
-}
-
-// Type return error typ
-func (s *status) Type() string {
-	return s.typ
 }
 
 // Message return error message for developer
