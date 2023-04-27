@@ -8,6 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestError(t *testing.T) {
+	e := Error(nil)
+	fmt.Println(e)
+}
+
 func TestNew(t *testing.T) {
 	errcode := "test_code"
 	err1msg := "test error 1"

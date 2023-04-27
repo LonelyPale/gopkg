@@ -32,9 +32,21 @@ type status struct {
 }
 
 func New(code string, message any, details ...any) Status {
+	if code == "" && message == nil {
+		return nil
+	} else if message == nil {
+		message = ""
+	}
+
 	var msg string
 	var err error
 	switch val := message.(type) {
+	case Status:
+		return &status{
+			code:    code,
+			details: details,
+			err:     val,
+		}
 	case string:
 		msg = val
 	case error:
@@ -42,6 +54,7 @@ func New(code string, message any, details ...any) Status {
 	default:
 		msg = fmt.Sprintf("%v", val)
 	}
+
 	return &status{
 		code:    code,
 		message: msg,
@@ -52,10 +65,34 @@ func New(code string, message any, details ...any) Status {
 }
 
 // Error new status with message and details
-func Error(message string, details ...any) Status {
+func Error(message any, details ...any) Status {
+	if message == nil {
+		return nil
+	}
+
+	var msg string
+	var err error
+	switch val := message.(type) {
+	case Status:
+		if details == nil {
+			return val
+		}
+		return &status{
+			details: details,
+			err:     val,
+		}
+	case string:
+		msg = val
+	case error:
+		err = val
+	default:
+		msg = fmt.Sprintf("%v", val)
+	}
+
 	return &status{
-		message: message,
+		message: msg,
 		details: details,
+		err:     err,
 		stack:   callers(),
 	}
 }
@@ -64,7 +101,6 @@ func Error(message string, details ...any) Status {
 func Errorf(format string, args ...interface{}) Status {
 	return &status{
 		message: fmt.Sprintf(format, args...),
-		details: nil,
 		stack:   callers(),
 	}
 }
@@ -95,12 +131,31 @@ func (s *status) Unwrap() error {
 
 // Error implement error
 func (s *status) Error() string {
-	if s.message != "" && s.err != nil {
-		return fmt.Sprintf("%s: %s\n%s", s.message, s.err, s.stack.String())
-	} else if s.err != nil {
-		return fmt.Sprintf("%s\n%s", s.err, s.stack.String())
+	var pre bool
+	var out strings.Builder
+	if s.code != "" {
+		out.WriteString(s.code)
+		out.WriteString(": ")
+		pre = true
 	}
-	return fmt.Sprintf("%s\n%s", s.message, s.stack.String())
+	if s.message != "" {
+		out.WriteString(s.message)
+		pre = true
+	}
+	if s.err != nil {
+		if pre {
+			out.WriteString("\n")
+		}
+		out.WriteString(s.err.Error())
+		pre = true
+	}
+	if s.stack != nil {
+		if pre {
+			out.WriteString("\n")
+		}
+		out.WriteString(s.stack.String())
+	}
+	return out.String()
 }
 
 // Code return error code
