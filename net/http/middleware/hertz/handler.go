@@ -77,7 +77,7 @@ func (b *bindHandler) call(c context.Context, ctx *app.RequestContext) ([]any, e
 			}
 
 			if err := ctx.BindAndValidate(val.Interface()); err != nil {
-				return nil, err
+				return nil, status.Error(err)
 			}
 
 			if isPtr {
@@ -116,19 +116,19 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 		}
 
 		if err != nil {
-			result = http.NewErrorMessage(err)
-		}
-
-		if result != nil {
-			ctx.JSON(consts.StatusOK, result)
-			if result.Code != status.SuccessCode {
-				request := "body is stream"
-				if !ctx.Request.IsBodyStream() {
-					request = string(ctx.Request.Body())
-				}
-				log.Errorf("code: %d msg: %s request: %s", result.Code, result.Msg, request)
+			result = http.NewMessage(err)
+			request := "body is stream"
+			if !ctx.Request.IsBodyStream() {
+				request = string(ctx.Request.Body())
+			}
+			if request != "" {
+				log.Errorf("%s\n\nrequest: %s", err, request)
+			} else {
+				log.Error(err)
 			}
 		}
+
+		ctx.JSON(consts.StatusOK, result)
 	}()
 
 	out, err := fn(c, ctx)
@@ -141,7 +141,7 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 		ctx.Response.Header.SetNoDefaultContentType(true)
 		contentType := ctx.Response.Header.Get(consts.HeaderContentType)
 		if contentType == "" {
-			result = http.NewSuccessMessage()
+			result = http.NewMessage()
 		}
 	case 1:
 		switch v := out[0].(type) {
@@ -150,18 +150,19 @@ func defaultWebInvoke(c context.Context, ctx *app.RequestContext, fn func(c cont
 		case *http.Message:
 			result = v
 		case error:
-			result = http.NewErrorMessage(v)
+			err = v
+			return
 		default:
-			result = http.NewSuccessMessage(v)
+			result = http.NewMessage(v)
 		}
 	default:
 		// 当返回值为多个时，最后一个固定是error
 		lastIndex := len(out) - 1
 		last := out[lastIndex]
-		if l, ok := last.(error); ok {
-			result = http.NewErrorMessage(l)
+		if v, ok := last.(error); ok {
+			err = v
 		} else {
-			result = http.NewSuccessMessage(out[:lastIndex]...)
+			result = http.NewMessage(out[:lastIndex]...)
 		}
 	}
 }

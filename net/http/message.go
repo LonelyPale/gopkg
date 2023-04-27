@@ -2,34 +2,54 @@ package http
 
 import "github.com/lonelypale/gopkg/errors/status"
 
+type Error struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+	Details []any  `json:"details,omitempty"`
+}
+
 type Message struct {
-	Code int    `json:"code"`           //状态码
-	Msg  string `json:"msg,omitempty"`  //消息
-	Data any    `json:"data,omitempty"` //结果数据
+	Success bool   `json:"success"`         //是否成功
+	Data    any    `json:"data,omitempty"`  //结果数据
+	Error   *Error `json:"error,omitempty"` //错误信息
 }
 
-func NewMessage(code int, msg string, datas ...any) *Message {
+func NewMessage(vals ...any) *Message {
+	var success bool
 	var data any
-	switch len(datas) {
-	case 0:
-		data = nil
+	var err *Error
+
+	switch len(vals) {
 	case 1:
-		data = datas[0]
+		switch v := vals[0].(type) {
+		case Error:
+			err = &v
+		case *Error:
+			err = v
+		case status.Status:
+			err = &Error{
+				Code:    v.Code(),
+				Message: v.Message(),
+				Details: v.Details(),
+			}
+		case error:
+			err = &Error{
+				Message: v.Error(),
+			}
+		default:
+			success = true
+			data = v
+		}
 	default:
-		data = datas
+		success = true
+		if vals != nil {
+			data = vals
+		}
 	}
-	return &Message{Code: code, Msg: msg, Data: data}
-}
 
-func NewSuccessMessage(datas ...any) *Message {
-	return NewMessage(status.SuccessCode, "success", datas...)
-}
-
-func NewErrorMessage(err error) *Message {
-	switch e := err.(type) {
-	case status.ErrorCode:
-		return &Message{Code: e.Code(), Msg: e.Error()}
-	default:
-		return &Message{Code: status.FailCode, Msg: e.Error()}
+	return &Message{
+		Success: success,
+		Data:    data,
+		Error:   err,
 	}
 }

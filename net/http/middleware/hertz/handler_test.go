@@ -3,12 +3,14 @@ package hertz
 import (
 	"context"
 	"errors"
-	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"testing"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/lonelypale/gopkg/errors/status"
 )
 
 type testUser struct {
@@ -65,16 +67,16 @@ func TestBind(t *testing.T) {
 	}))
 
 	//curl localhost:8888/test8
-	h.GET("/test8", Bind(func(ctx *app.RequestContext) error {
+	h.GET("/test8", Bind(func(ctx *app.RequestContext) (int, int, int, error) {
 		assert.NotNil(t, ctx, "*app.RequestContext cannot be nil")
 		ctx.Header(consts.HeaderContentType, "text")
-		return nil
+		return 1, 2, 3, nil
 	}))
 
-	//curl localhost:8888/test9
-	h.GET("/test9", Bind(func(ctx *app.RequestContext) error {
+	//curl -X POST localhost:8888/test9 -d '{}'
+	h.POST("/test9", Bind(func(ctx *app.RequestContext) error {
 		assert.NotNil(t, ctx, "*app.RequestContext cannot be nil")
-		return errors.New("test error")
+		return status.Error(errors.New("test error"))
 	}))
 
 	h.Spin()
