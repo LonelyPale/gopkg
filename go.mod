@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/cloudwego/hertz v0.6.2
+	github.com/hertz-contrib/cors v0.0.0-20230423034624-2bc83a8400f0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
 )
