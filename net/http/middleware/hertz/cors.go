@@ -7,12 +7,15 @@ import (
 	"github.com/hertz-contrib/cors"
 )
 
-func SimpleCors() app.HandlerFunc {
+// Cors simple cors
+func Cors() app.HandlerFunc {
 	return cors.New(cors.Config{
+		//AllowOrigins:     []string{"http://localhost:63342"},
+		//AllowCredentials: true,
 		AllowOrigins:  []string{"*"},
 		AllowMethods:  []string{"POST", "GET", "OPTIONS"},
-		AllowHeaders:  []string{"Content-Type"},
+		AllowHeaders:  []string{"Content-Type", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
-		MaxAge:        2 * time.Hour,
+		MaxAge:        12 * time.Hour,
 	})
 }

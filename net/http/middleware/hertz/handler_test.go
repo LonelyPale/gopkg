@@ -3,10 +3,12 @@ package hertz
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/protocol"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/stretchr/testify/assert"
 
@@ -86,4 +88,26 @@ func TestBind(t *testing.T) {
 	//render.ResetJSONMarshal(json.Marshal)
 	// Binding
 	//binding.ResetJSONUnmarshaler(json.Unmarshal)
+}
+
+func TestCookie(t *testing.T) {
+	h := server.Default()
+	h.Use(Cors())
+
+	//curl -v localhost:8888/test_cookie_set
+	h.GET("/test_cookie_set", Bind(func(ctx *app.RequestContext) error {
+		ctx.SetCookie("key1", "value1", 3600, "/", "127.0.0.1", protocol.CookieSameSiteNoneMode, true, true)
+		ctx.SetCookie("key2", "value2", 3600, "/", "127.0.0.1:8888", protocol.CookieSameSiteNoneMode, true, true)
+		ctx.SetCookie("key3", "value3", 3600, "/", "localhost", protocol.CookieSameSiteNoneMode, true, true)
+		ctx.SetCookie("key4", "value4", 3600, "/", "localhost:63342", protocol.CookieSameSiteNoneMode, true, true)
+		return nil
+	}))
+
+	h.POST("/test_cookie_get", Bind(func(ctx *app.RequestContext) error {
+		val1 := ctx.Cookie("key1")
+		fmt.Println("key1:", string(val1))
+		return nil
+	}))
+
+	h.Spin()
 }
