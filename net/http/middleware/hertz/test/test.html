@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script>
+    const ajax = function (method, url) {
+        fetch(url, {method: method, mode: 'cors', credentials: 'include'})
+            .then(
+                function(response) {
+                    if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' + response.status);
+                        return;
+                    }
+
+                    // Examine the text in the response
+                    response.json().then(function(data) {
+                        console.log(data);
+                    });
+
+                    console.log(response.headers.get('Set-Cookie'));
+
+                    const ck = document.cookie;
+                    console.log("cookie:", ck);
+                }
+            )
+            .catch(function(err) {
+                console.log('Fetch Error :-S', err);
+            });
+    }
+
+    ajax('GET', 'http://127.0.0.1:8888/test_cookie_set');
+    ajax('POST', 'http://127.0.0.1:8888/test_cookie_get');
+</script>
+<body>
+
+</body>
+</html>

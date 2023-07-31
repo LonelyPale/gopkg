@@ -3,14 +3,27 @@ package status
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func printUnicode(code uint64) {
+	uc := fmt.Sprintf("\\u%x", code)
+	str, err := strconv.Unquote(`"` + uc + `"`)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%d %s %s \n", code, uc, str)
+
+}
 func TestError(t *testing.T) {
-	e := Error(nil)
+	e := Error("test error")
 	fmt.Println(e)
+
+	printUnicode(38382)
+	printUnicode(65510)
 }
 
 func TestNew(t *testing.T) {

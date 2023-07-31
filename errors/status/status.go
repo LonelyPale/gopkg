@@ -176,12 +176,15 @@ func (s *status) Details() []any {
 // stack represents a stack of program counters.
 type stack []uintptr
 
+// callers is a wrapper for runtime.Callers that allocates a slice.
 func callers() *stack {
-	const depth = 32
+	const skipStart = 3 // Skip start 3 stack frames;
+	const skipEnd = 2   // Skip end 2 stack frames;
+	const depth = 64 + skipEnd
 	var pcs [depth]uintptr
-	n := runtime.Callers(3, pcs[:])
-	var st stack = pcs[0:n]
-	return &st
+	n := runtime.Callers(skipStart, pcs[:])
+	var stk stack = pcs[0 : n-skipEnd]
+	return &stk
 }
 
 func (s *stack) String() string {
